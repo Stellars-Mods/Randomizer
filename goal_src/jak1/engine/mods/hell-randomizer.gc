@@ -61,7 +61,7 @@
     (begin
       (format 0 "[HELL] yes!~%")
       ;; Modifier info has not been setup so lets set it up
-      ;;setup functions with set-modifier-param modifier name on-func off-func index
+      ;; setup functions with set-modifier-param modifier name on-func off-func index
       (set-modifier-param (-> *modifier-info* modifiers 0) 
         "pacifist" 
         (lambda () (set! (-> *TARGET-bank* punch-radius) (meters -1.0))(set! (-> *TARGET-bank* spin-radius) (meters -1.0))(set! (-> *TARGET-bank* flop-radius) (meters -1.0))(set! (-> *TARGET-bank* uppercut-radius) (meters -1.0)) 
@@ -88,24 +88,22 @@
         "scrambled-buttons" 
         (;;the-as (function none) #f
           lambda ()
+          ;; loop 12 times for the 12 buttons we are going to scramble [up down left right triangle x square circle l1 l2 r1 r2]
           (dotimes (i 12)
-            (format 0 "[HELL] case ~D~%" i)
             (let ((button-assigned? #f))
+              ;; loop until button is assigned
               (while (not button-assigned?)
-                (let ((random (+ (rand-vu-int-count 12) 4)))  ;; Add 4 to avoid selecting first 4 entries in *button-assignments*
+                ;; Add 4 to avoid selecting first 4 entries in *button-assignments*
+                (let ((random (+ (rand-vu-int-count 12) 4)))  
                   (when (= (-> *button-assignments* random) 16)
                     (set! (-> *button-assignments* random) i)
                     (set! button-assigned? #t)
-                    (format 0 "[HELL] button at index ~D was assigned ~D~%" random i)
                   )
                 ) 
               )
             )
           )
-          (format 0 "[HELL] Buttons have been scrambled!~%")
-          (dotimes (i 16)
-            (format 0 "[HELL] *button-assignments* ~D is set to ~D~%" i (-> *button-assignments* i))
-          ) 
+          ;;(format 0 "[HELL] Buttons have been scrambled!~%")
           (none)
         )
         (;;the-as (function none) #f 
@@ -113,7 +111,7 @@
           (dotimes (i 12)
             (set! (-> *button-assignments* (+ i 4)) 16)
           )
-          (format 0 "[HELL] Buttons are no longer scrambled!~%") 
+          ;;(format 0 "[HELL] Buttons are no longer scrambled!~%") 
           (none)
         )
         2
@@ -252,6 +250,7 @@
 
 (defun modifierCloser ((mod int)) ;;Mod = -1 -> Toggle off all , Mod 0+ -> Toggle off specified modifier (1 -> no. of modifiers)
   ;;(format 0 "[HELL] modifierCloser received index ~D...~%" mod)
+
   ;;Mod -1 -> toggle off all modifiers (randomizer)
   #| 
     Here a loop will toggle off every modifier.
@@ -324,10 +323,10 @@
     )
     (if (-> *hell-settings* scrambled-buttons?) 
       (begin (modifierOpener (modifier-by-name "scrambled-buttons")) 
-        (format 0 "[HELL] *hell-settings* scrambled-buttons? read as #t~%")
+        ;;(format 0 "[HELL] *hell-settings* scrambled-buttons? read as #t~%")
       ) 
       (begin (modifierCloser (modifier-by-name "scrambled-buttons")) 
-        (format 0 "[HELL] *hell-settings* scrambled-buttons? read as #f~%")
+        ;;(format 0 "[HELL] *hell-settings* scrambled-buttons? read as #f~%")
       )
     )
     (if (-> *hell-settings* flipped-buttons?) 

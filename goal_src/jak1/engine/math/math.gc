@@ -9,23 +9,14 @@
 (define-extern debug-print-frame-counter (int))
 ;; Mod addition
 (defun raise-to-pos-power ((x int) (power int))
-  ;; (if (= debug-print-frame-counter 1)
-  ;;   (format 0 "[HELL] raise-to-pos-power called with x=~D, power=~D...~%" x power)
-  ;; )
   (if (>= power 0)
     (begin
       (let ((base x))
         (cond
           ((= power 1)
-            ;; (if (= debug-print-frame-counter 1)
-            ;;   (format 0 "[HELL] raise-to-pos-power returned ~D~%" base)
-            ;; )
             (return base)
           )
           ((= power 0)
-            ;; (if (= debug-print-frame-counter 1)
-            ;;   (format 0 "[HELL] raise-to-pos-power returned 1~%")
-            ;; )
             (return 1)
           )
           (else ;; power is >1
@@ -35,16 +26,10 @@
           )
         )
       )
-      ;; (if (= debug-print-frame-counter 1)
-      ;;   (format 0 "[HELL] raise-to-pos-power returned ~D~%" x)
-      ;; )
       (return x)
     )
   )
   ;; return 0 if power is < 0
-  ;; (if (= debug-print-frame-counter 1)
-  ;;   (format 0 "[HELL] raise-to-pos-power returned 0~%")
-  ;; )
   0
 )
 

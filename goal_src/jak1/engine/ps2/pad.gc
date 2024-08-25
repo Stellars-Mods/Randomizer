@@ -339,35 +339,24 @@
 ;; Swaps the state of any two buttons, including their pressure values
 (defun swap-buttons! ((cpad cpad-info) (button-a pad-buttons) (button-a-pressure abutton-idx) (button-b pad-buttons) (button-b-pressure abutton-idx))
   ;;thanks Vaser
-  (when (= debug-print-frame-counter 1)
-    (format 0 "[HELL-before] swap-buttons! called with arguments:~%")
-    (format 0 "       cpad: ~A~%" cpad)
-    ;; (format 0 "       button-a: ~D~%" button-a)
-    ;; (format 0 "       button-a-pressure: ~D~%" button-a-pressure)
-    ;; (format 0 "       button-b: ~D~%" button-b)
-    ;; (format 0 "       button-b-pressure: ~D~%" button-b-pressure)
-  )
-
   (let ((a-pressed? (logtest? (-> cpad button0) button-a))
     (a-pressure (-> cpad abutton (the-as int button-a-pressure)))
     (b-pressed? (logtest? (-> cpad button0) button-b))
     (b-pressure (-> cpad abutton (the-as int button-b-pressure))))
 
+    ;; clear both buttons
+    (logclear! (-> cpad button0) button-a)
+    (logclear! (-> cpad button0) button-b)
+    ;; if button a is pressed, set button b
     (when a-pressed?
-      (logclear! (-> cpad button0) button-a)
       (logior! (-> cpad button0) button-b))
+    ;; if button b is pressed, set button a
     (when b-pressed?
-      (logclear! (-> cpad button0) button-b)
       (logior! (-> cpad button0) button-a))
+    ;; set both button pressure values
     (set! (-> cpad abutton (the-as int button-a-pressure)) b-pressure)
     (set! (-> cpad abutton (the-as int button-b-pressure)) a-pressure)
   )
-
-  (when (= debug-print-frame-counter 1)
-    (format 0 "[HELL-after] swap-buttons! called with arguments:~%")
-    (format 0 "       cpad: ~A~%" cpad)
-  )
-
   (none)
 )
 
@@ -378,58 +367,34 @@
 
 ;; Scrambles all the pad buttons [up down left right triangle x square circle l1 l2 r1 r2]
 (defun scramble-buttons! ((pad cpad-info))
-  (format 0 "[HELL] scramble-buttons!~%")
-  (if (= debug-print-frame-counter 600)
-    (set! debug-print-frame-counter 1)
-  )
+  ;;(if (= debug-print-frame-counter 600)
+  ;;  (set! debug-print-frame-counter 1)
+  ;;)
   ;;(format 0 "[HELL] attempting to scramble buttons...~%")
-  (if (!= (-> *button-assignments* 15) 16) ;;are *button-assignments* ready?
+
+  ;; Are *button-assignments* ready?
+  (if (!= (-> *button-assignments* 15) 16)
+      ;; Loop 6 times, for 6 pairs of 2 indices, for a total of 12 buttons to be scrambled
       (dotimes (i 6) 
-        (begin
-          
+        (begin 
           (let ((button1-idx 16) 
             (button2-idx 16))
-
-            ;; (if (= debug-print-frame-counter 1)
-            ;;   (format 0 "[HELL] Begin i = ~D~%" i)
-            ;; )
-            
-            (let ((j 4)) ;; Start at index 4 to avoid using first 4 entries in *button-assignments*
+            ;; Start at index 4 to avoid using first 4 entries in *button-assignments*
+            (let ((j 4))
+              ;; Loop until both indices have been matched
               (while (or (= button1-idx 16) (= button2-idx 16))
-
-                ;; (if (= debug-print-frame-counter 1)
-                ;;   (format 0 "[HELL] j = ~D~%" j)
-                ;; )
-
+                ;; Check *button-assignments* for the first in the current pair
                 (if (= (-> *button-assignments* j) (* 2 i))
-                  (begin (set! button1-idx j)
-                    ;; (if (= debug-print-frame-counter 1)
-                    ;;   (format 0 "[HELL] button1-idx just set to ~D~%" button1-idx)
-                    ;; )
-                  )
+                  (set! button1-idx j)
+                  ;; Check *button-assignments* for the second in the current pair
                   (if (= (-> *button-assignments* j) (+ 1 (* 2 i)))
-                    (begin (set! button2-idx j) 
-                      ;; (if (= debug-print-frame-counter 1)
-                      ;;   (format 0 "[HELL] button2-idx just set to ~D~%" button2-idx)
-                      ;; )
-                    )
+                    (set! button2-idx j) 
                   )
                 )
                 (+! j 1)
               )
             )
-
-            ;; (if (= debug-print-frame-counter 1)
-            ;;   (begin
-            ;;     (format 0 "[HELL] swap-buttons! about to be called during i=~D with arguments:~%" i)
-            ;;     (format 0 "       pad: ~A~%" pad)
-            ;;     (format 0 "       button-a: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button1-idx) (clear *temp-string*)) *temp-string*))
-            ;;     (format 0 "       button-a-pressure: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button1-idx) (clear *temp-string*)) *temp-string*))
-            ;;     (format 0 "       button-b: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button2-idx) (clear *temp-string*)) *temp-string*))
-            ;;     (format 0 "       button-b-pressure: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button2-idx) (clear *temp-string*)) *temp-string*))
-            ;;   )
-            ;; )
-            
+            ;; Swap the two buttons in this pair with each other    
             (swap-buttons! pad 
               (the-as pad-buttons (raise-to-pos-power 2 button1-idx)) 
               (pad-button-idx-to-abutton-idx button1-idx)
@@ -437,12 +402,11 @@
               (pad-button-idx-to-abutton-idx button2-idx)
             )
           )
-
         )
       )
-    ;; (format 0 "[HELL] scramble-buttons! called but *button-assignments* are not ready!~%")
+    (format 0 "[HELL] scramble-buttons! called but *button-assignments* are not ready!~%")
   )
-  (+! debug-print-frame-counter 1)
+  ;;(+! debug-print-frame-counter 1)
 )
 
 (defun service-cpads ()
