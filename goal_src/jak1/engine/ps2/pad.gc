@@ -51,6 +51,45 @@
   (x 14)
   (square 15))
 
+(defenum abutton-idx
+  :type uint8
+  (right 0)
+  (left 1)
+  (up 2)
+  (down 3)
+  (triangle 4)
+  (circle 5)
+  (x 6)
+  (square 7)
+  (l1 8)
+  (r1 9)
+  (l2 10)
+  (r2 11))
+
+(defun pad-button-idx-to-abutton-idx ((idx int))
+  (the-as abutton-idx 
+      (case idx
+      ((0) -1) ;; select
+      ((0) -1) ;; l3
+      ((0) -1) ;; r3
+      ((0) -1) ;; start
+      ((0) 2) ;; up
+      ((0) 0) ;; right
+      ((0) 3) ;; down
+      ((0) 1) ;; left
+      ((0) 10) ;; l2
+      ((0) 11) ;; r2
+      ((0) 8) ;; l1
+      ((0) 9) ;; r1
+      ((0) 4) ;; triangle
+      ((0) 5) ;; circle
+      ((0) 6) ;; x
+      ((0) 7) ;; square
+      (else -1) ;; unknown
+      )
+    )
+  )
+
 (defenum pad-type
   (normal 4)
   (analog 5)
@@ -101,6 +140,35 @@
    (change-time        time-frame))
   (:methods
    (new (symbol type int) _type_)))
+
+(defmethod print ((this cpad-info))
+  (format #t "#<~A pad-number: ~D @ #x~X> ~%" (-> this type) (-> this number) this)
+  (format #t "~Tpressure: ~D ~D ~D ~D ~D ~D " 
+    (-> this abutton 0)
+    (-> this abutton 1)
+    (-> this abutton 2)
+    (-> this abutton 3)
+    (-> this abutton 4)
+    (-> this abutton 5))
+  
+  (format #t "~D ~D ~D ~D ~D ~D ~%"
+    (-> this abutton 6)
+    (-> this abutton 7)
+    (-> this abutton 8)
+    (-> this abutton 9)
+    (-> this abutton 10)
+    (-> this abutton 11))
+  (format #t "~Tabs: ~S / ~S / ~S ~%" 
+    (begin (bit-enum->string pad-buttons (-> this button0-abs 0) (clear *temp-string*)) *temp-string*) 
+    (begin (bit-enum->string pad-buttons (-> this button0-abs 1) (clear *temp-string*)) *temp-string*) 
+    (begin (bit-enum->string pad-buttons (-> this button0-abs 2) (clear *temp-string*)) *temp-string*))
+  (format #t "~Tshadow-abs: ~S ~%" 
+    (begin (bit-enum->string pad-buttons (-> this button0-shadow-abs 0) (clear *temp-string*)) *temp-string*))
+  (format #t "~Trel: ~S / ~S / ~S ~%" 
+    (begin (bit-enum->string pad-buttons (-> this button0-rel 0) (clear *temp-string*)) *temp-string*) 
+    (begin (bit-enum->string pad-buttons (-> this button0-rel 1) (clear *temp-string*)) *temp-string*) 
+    (begin (bit-enum->string pad-buttons (-> this button0-rel 2) (clear *temp-string*)) *temp-string*))
+  this)
 
 (defmacro cpad-type? (type)
   `(= (shr (-> pad status) 4) (cpad-type ,type)))
@@ -269,17 +337,15 @@
 (#if PC_PORT (defconstant STICK_DEADZONE (-> *pc-settings* stick-deadzone)) (defconstant STICK_DEADZONE 0.3))
 
 ;; Swaps the state of any two buttons, including their pressure values
-(defun swap-buttons! ((cpad cpad-info) (button-a pad-buttons) (button-a-pressure pad-buttons) (button-b pad-buttons) (button-b-pressure pad-buttons))
+(defun swap-buttons! ((cpad cpad-info) (button-a pad-buttons) (button-a-pressure abutton-idx) (button-b pad-buttons) (button-b-pressure abutton-idx))
   ;;thanks Vaser
-  (if (= debug-print-frame-counter 1)
-    (begin 
-      (format 0 "[HELL] swap-buttons! called with arguments:~%")
-      (format 0 "       cpad: ~A~%" cpad)
-      (format 0 "       button-a: ~A~%" button-a)
-      (format 0 "       button-a-pressure: ~A~%" button-a-pressure)
-      (format 0 "       button-b: ~A~%" button-b)
-      (format 0 "       button-b-pressure: ~A~%" button-b-pressure)
-    )
+  (when (= debug-print-frame-counter 1)
+    (format 0 "[HELL-before] swap-buttons! called with arguments:~%")
+    (format 0 "       cpad: ~A~%" cpad)
+    ;; (format 0 "       button-a: ~D~%" button-a)
+    ;; (format 0 "       button-a-pressure: ~D~%" button-a-pressure)
+    ;; (format 0 "       button-b: ~D~%" button-b)
+    ;; (format 0 "       button-b-pressure: ~D~%" button-b-pressure)
   )
 
   (let ((a-pressed? (logtest? (-> cpad button0) button-a))
@@ -296,6 +362,13 @@
     (set! (-> cpad abutton (the-as int button-a-pressure)) b-pressure)
     (set! (-> cpad abutton (the-as int button-b-pressure)) a-pressure)
   )
+
+  (when (= debug-print-frame-counter 1)
+    (format 0 "[HELL-after] swap-buttons! called with arguments:~%")
+    (format 0 "       cpad: ~A~%" cpad)
+  )
+
+  (none)
 )
 
 ;; Mod addition
@@ -305,7 +378,7 @@
 
 ;; Scrambles all the pad buttons [up down left right triangle x square circle l1 l2 r1 r2]
 (defun scramble-buttons! ((pad cpad-info))
-  (format 0 "[HELL] debug-print-frame-counter = ~D~%" debug-print-frame-counter)
+  (format 0 "[HELL] scramble-buttons!~%")
   (if (= debug-print-frame-counter 600)
     (set! debug-print-frame-counter 1)
   )
@@ -317,28 +390,28 @@
           (let ((button1-idx 16) 
             (button2-idx 16))
 
-            (if (= debug-print-frame-counter 1)
-              (format 0 "[HELL] Begin i = ~D~%" i)
-            )
+            ;; (if (= debug-print-frame-counter 1)
+            ;;   (format 0 "[HELL] Begin i = ~D~%" i)
+            ;; )
             
             (let ((j 4)) ;; Start at index 4 to avoid using first 4 entries in *button-assignments*
               (while (or (= button1-idx 16) (= button2-idx 16))
 
-                (if (= debug-print-frame-counter 1)
-                  (format 0 "[HELL] j = ~D~%" j)
-                )
+                ;; (if (= debug-print-frame-counter 1)
+                ;;   (format 0 "[HELL] j = ~D~%" j)
+                ;; )
 
                 (if (= (-> *button-assignments* j) (* 2 i))
                   (begin (set! button1-idx j)
-                    (if (= debug-print-frame-counter 1)
-                      (format 0 "[HELL] button1-idx just set to ~D~%" button1-idx)
-                    )
+                    ;; (if (= debug-print-frame-counter 1)
+                    ;;   (format 0 "[HELL] button1-idx just set to ~D~%" button1-idx)
+                    ;; )
                   )
                   (if (= (-> *button-assignments* j) (+ 1 (* 2 i)))
                     (begin (set! button2-idx j) 
-                      (if (= debug-print-frame-counter 1)
-                        (format 0 "[HELL] button2-idx just set to ~D~%" button2-idx)
-                      )
+                      ;; (if (= debug-print-frame-counter 1)
+                      ;;   (format 0 "[HELL] button2-idx just set to ~D~%" button2-idx)
+                      ;; )
                     )
                   )
                 )
@@ -346,28 +419,28 @@
               )
             )
 
-            (if (= debug-print-frame-counter 1)
-              (begin
-                (format 0 "[HELL] swap-buttons! about to be called during i=~D with arguments:~%" i)
-                (format 0 "       pad: ~A~%" pad)
-                (format 0 "       button-a: ~A~%" (begin (bit-enum->string pad-buttons (raise-to-pos-power 2 button1-idx) (clear *temp-string*)) *temp-string*))
-                (format 0 "       button-a-pressure: ~A~%" (begin (bit-enum->string pad-buttons (raise-to-pos-power 2 button1-idx) (clear *temp-string*)) *temp-string*))
-                (format 0 "       button-b: ~A~%" (begin (bit-enum->string pad-buttons (raise-to-pos-power 2 button2-idx) (clear *temp-string*)) *temp-string*))
-                (format 0 "       button-b-pressure: ~A~%" (begin (bit-enum->string pad-buttons (raise-to-pos-power 2 button2-idx) (clear *temp-string*)) *temp-string*))
-              )
-            )
+            ;; (if (= debug-print-frame-counter 1)
+            ;;   (begin
+            ;;     (format 0 "[HELL] swap-buttons! about to be called during i=~D with arguments:~%" i)
+            ;;     (format 0 "       pad: ~A~%" pad)
+            ;;     (format 0 "       button-a: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button1-idx) (clear *temp-string*)) *temp-string*))
+            ;;     (format 0 "       button-a-pressure: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button1-idx) (clear *temp-string*)) *temp-string*))
+            ;;     (format 0 "       button-b: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button2-idx) (clear *temp-string*)) *temp-string*))
+            ;;     (format 0 "       button-b-pressure: ~A~%" (begin (bit-enum-x>string pad-buttons (raise-to-pos-power 2 button2-idx) (clear *temp-string*)) *temp-string*))
+            ;;   )
+            ;; )
             
             (swap-buttons! pad 
               (the-as pad-buttons (raise-to-pos-power 2 button1-idx)) 
-              (the-as pad-buttons (raise-to-pos-power 2 button1-idx)) 
+              (pad-button-idx-to-abutton-idx button1-idx)
               (the-as pad-buttons (raise-to-pos-power 2 button2-idx)) 
-              (the-as pad-buttons (raise-to-pos-power 2 button2-idx))
+              (pad-button-idx-to-abutton-idx button2-idx)
             )
           )
 
         )
       )
-    (format 0 "[HELL] scramble-buttons! called but *button-assignments* are not ready!~%")
+    ;; (format 0 "[HELL] scramble-buttons! called but *button-assignments* are not ready!~%")
   )
   (+! debug-print-frame-counter 1)
 )
@@ -387,10 +460,10 @@
 
         ;; apply symbol <-> dpad button flips, if Hell Randomizer modifier "flipped-buttons" is active
         (when (and (modifier-is-active? "flipped-buttons") (not (modifier-is-active? "scrambled-buttons")))
-          (swap-buttons! pad (pad-buttons triangle) (pad-buttons triangle) (pad-buttons up) (pad-buttons up))
-          (swap-buttons! pad (pad-buttons x) (pad-buttons x) (pad-buttons down) (pad-buttons down))
-          (swap-buttons! pad (pad-buttons square) (pad-buttons square) (pad-buttons left) (pad-buttons left))
-          (swap-buttons! pad (pad-buttons circle) (pad-buttons circle) (pad-buttons right) (pad-buttons right))
+          (swap-buttons! pad (pad-buttons triangle) (abutton-idx triangle) (pad-buttons up) (abutton-idx up))
+          (swap-buttons! pad (pad-buttons x) (abutton-idx x) (pad-buttons down) (abutton-idx down))
+          (swap-buttons! pad (pad-buttons square) (abutton-idx square) (pad-buttons left) (abutton-idx left))
+          (swap-buttons! pad (pad-buttons circle) (abutton-idx circle) (pad-buttons right) (abutton-idx right))
         )
 
         (cond
