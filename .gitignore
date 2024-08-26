@@ -114,3 +114,11 @@ out/jak2/fr3.rar
 
 *.diff
 goalc-report.html
+custom_assets/jak1/sound_replacements/wcrate-break.mp3
+custom_assets/jak1/sound_replacements/scrate-break.mp3
+custom_assets/jak1/sound_replacements/pill-pickup.mp3
+custom_assets/jak1/sound_replacements/money-pickup.mp3
+custom_assets/jak1/sound_replacements/icrate-break.mp3
+custom_assets/jak1/sound_replacements/dcrate-break.mp3
+custom_assets/jak1/sound_replacements/buzzer-pickup.mp3
+custom_assets/jak1/sound_replacements/b-eco-pickup.mp3

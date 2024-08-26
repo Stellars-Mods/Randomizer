@@ -270,14 +270,36 @@
           (set! ,sound-trans (the vector #f)))))
     (sound-trans-convert (-> ,cmd parms trans) ,sound-trans)))
 
+;; temp-string to be used by sound-play only
+(define *sound-play-temp-string* (new 'global 'string 2048 (the string #f)))
+
+;; same as string-format but will only use the specified temp-string provided when called
+(defmacro temp-string-format (temp-str &rest args)
+  `(begin
+    (format (clear ,temp-str) ,@args)
+    ,temp-str)
+)
+
 (defmacro sound-play (name &key (id (new-sound-id)) &key (vol 100.0) &key (pitch 0) &key (bend 0) &key (group sfx) &key (position #t))
-  `(sound-play-by-name (static-sound-name ,name)
+
+  ;; Mod addition, checks for a replacement sound and plays it if there is one, otherwise plays the original
+  `(if (pc-filepath-exists? (temp-string-format *sound-play-temp-string* "custom_assets/jak1/sound_replacements/~S.mp3" ,name))
+    ;; Custom sound found, play it at volume 50
+    (the-as sound-id (play-sound-file (temp-string-format *sound-play-temp-string* "custom_assets/jak1/sound_replacements/~S.mp3" ,name)
+      ;; optional argument for volume, not used by default because most custom sounds will be far too loud
+      ;;(the int (* (/ 1024.0 100.0) ,vol))
+      ))
+    ;; Custom sound not found, play the original instead
+
+    (sound-play-by-name (static-sound-name ,name)
                       ,id
                       (the int (* (/ 1024.0 100.0) ,vol))
                       (the int (* 1524.0 ,pitch))
                       ,bend
                       (sound-group ,group)
-                      ,position))
+                      ,position)
+  )
+)
 
 (defun sound-play-by-name ((name sound-name) (id sound-id) (vol int) (pitch int) (bend int) (group sound-group) (trans symbol))
   "Play a sound called name with the specified params"
