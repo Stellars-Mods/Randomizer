@@ -285,7 +285,8 @@
   ;; Mod addition, checks for a replacement sound and plays it if there is one, otherwise plays the original
   `(if (pc-filepath-exists? (temp-string-format *sound-play-temp-string* "custom_assets/jak1/sound_replacements/~S.mp3" ,name))
     ;; Custom sound found, play it at volume 50
-    (the-as sound-id (play-sound-file (temp-string-format *sound-play-temp-string* "custom_assets/jak1/sound_replacements/~S.mp3" ,name)
+    (the-as sound-id (play-sound-file (temp-string-format *sound-play-temp-string* "custom_assets/jak1/sound_replacements/~S.mp3" ,name) 
+      50
       ;; optional argument for volume, not used by default because most custom sounds will be far too loud
       ;;(the int (* (/ 1024.0 100.0) ,vol))
       ))
